@@ -4,6 +4,44 @@
     <meta charset="utf-8">
     <title>A-Frame Sample Project</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script>
+      AFRAME.registerComponent('blink', {
+        schema: {
+          speed: {type: 'number', default: 1.0}
+        },
+        init: function () {
+          this.el.setAttribute('material', 'opacity', 1);
+        },
+        tick: function (time) {
+          const opacity = Math.abs(Math.sin(time * 0.001 * this.data.speed));
+          this.el.setAttribute('material', 'opacity', opacity);
+        }
+      });
+
+      AFRAME.registerComponent('click-popup', {
+        init: function () {
+          this.el.addEventListener('click', () => {
+            const popup = document.createElement('div');
+            popup.style.position = 'absolute';
+            popup.style.top = '50%';
+            popup.style.left = '50%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            popup.style.padding = '20px';
+            popup.style.background = 'white';
+            popup.style.border = '2px solid black';
+            popup.style.borderRadius = '5px';
+            popup.style.zIndex = '1000';
+            popup.innerHTML = 'You clicked the green box!';
+            
+            document.body.appendChild(popup);
+            
+            setTimeout(() => {
+              document.body.removeChild(popup);
+            }, 2000);
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <a-scene>
@@ -19,21 +57,24 @@
         color="#7BC8A4">
       </a-plane>
       
-      <!-- Box -->
+      <!-- Box with click interaction -->
       <a-box 
         position="-1 0.5 -3" 
         rotation="0 45 0" 
         width="1" 
         height="1" 
         depth="1" 
-        color="#4CC3D9">
+        color="#4CC3D9"
+        click-popup
+        cursor="rayOrigin: mouse">
       </a-box>
       
-      <!-- Sphere -->
+      <!-- Sphere with blinking animation -->
       <a-sphere 
         position="0 1.25 -5" 
         radius="1.25" 
-        color="#EF2D5E">
+        color="#EF2D5E"
+        blink="speed: 1.5">
       </a-sphere>
       
       <!-- Cylinder -->
@@ -46,6 +87,9 @@
       
       <!-- Sky with 360 image -->
       <a-sky src="assets/360_world.jpg"></a-sky>
+
+      <!-- Cursor for interaction -->
+      <a-cursor></a-cursor>
     </a-scene>
   </body>
 </html> 
