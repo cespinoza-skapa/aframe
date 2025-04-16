@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Basic A-Frame Sample</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script>
+      // Register a simple animation component
+      AFRAME.registerComponent('rotate', {
+        schema: {
+          speed: {type: 'number', default: 1}
+        },
+        tick: function (time, timeDelta) {
+          this.el.object3D.rotation.y += this.data.speed * timeDelta / 1000;
+        }
+      });
+
+      // Register a hover effect component
+      AFRAME.registerComponent('hover-effect', {
+        init: function () {
+          const el = this.el;
+          const originalScale = el.object3D.scale.clone();
+          
+          el.addEventListener('mouseenter', () => {
+            el.object3D.scale.set(
+              originalScale.x * 1.2,
+              originalScale.y * 1.2,
+              originalScale.z * 1.2
+            );
+          });
+          
+          el.addEventListener('mouseleave', () => {
+            el.object3D.scale.copy(originalScale);
+          });
+        }
+      });
+
+      // Register a popup component
+      AFRAME.registerComponent('click-popup', {
+        schema: {
+          message: {type: 'string', default: 'Popup message'}
+        },
+        init: function () {
+          const el = this.el;
+          let popup = null;
+
+          const showPopup = () => {
+            if (popup) return;
+
+            popup = document.createElement('div');
+            popup.id = 'click-popup';
+            popup.style.position = 'absolute';
+            popup.style.top = '50%';
+            popup.style.left = '50%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            popup.style.padding = '20px';
+            popup.style.background = 'white';
+            popup.style.border = '2px solid black';
+            popup.style.borderRadius = '5px';
+            popup.style.zIndex = '1000';
+            popup.style.textAlign = 'center';
+            
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = 'Close';
+            closeButton.style.marginTop = '10px';
+            closeButton.style.padding = '5px 15px';
+            closeButton.style.cursor = 'pointer';
+            closeButton.onclick = () => {
+              document.body.removeChild(popup);
+              popup = null;
+            };
+            
+            popup.innerHTML = this.data.message + '<br>';
+            popup.appendChild(closeButton);
+            
+            document.body.appendChild(popup);
+          };
+
+          // Use A-Frame's click event
+          el.addEventListener('click', showPopup);
+
+          // Clean up on component removal
+          this.el.addEventListener('componentremoved', () => {
+            if (popup) {
+              document.body.removeChild(popup);
+              popup = null;
+            }
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene cursor="rayOrigin: mouse">
+      <!-- Camera with movement controls -->
+      <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
+      
+      <!-- Ground -->
+      <a-plane 
+        position="0 0 -4" 
+        rotation="-90 0 0" 
+        width="10" 
+        height="10" 
+        color="#7BC8A4"
+        shadow>
+      </a-plane>
+      
+      <!-- Green box with click popup -->
+      <a-box 
+        position="-1 0.5 -3" 
+        width="1" 
+        height="1" 
+        depth="1" 
+        color="#4CC3D9"
+        rotate="speed: 0.5"
+        hover-effect
+        click-popup="message: You clicked the green box!"
+        cursor="rayOrigin: mouse"
+        shadow>
+      </a-box>
+      
+      <!-- Interactive sphere -->
+      <a-sphere 
+        position="0 1.25 -5" 
+        radius="1.25" 
+        color="#EF2D5E"
+        hover-effect
+        shadow>
+      </a-sphere>
+      
+      <!-- Cylinder with hover effect -->
+      <a-cylinder 
+        position="1 0.75 -3" 
+        radius="0.5" 
+        height="1.5" 
+        color="#FFC65D"
+        hover-effect
+        shadow>
+      </a-cylinder>
+
+      <!-- Sky with gradient -->
+      <a-sky color="#ECECEC"></a-sky>
+
+      <!-- Lighting -->
+      <a-entity light="type: ambient; color: #BBB"></a-entity>
+      <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-0.5 1 1"></a-entity>
+
+      <!-- Cursor for interaction -->
+      <a-cursor></a-cursor>
+    </a-scene>
+  </body>
+</html> 

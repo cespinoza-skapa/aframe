@@ -1,38 +1,34 @@
-# A-Frame Sample Project
+# A-Frame Basic Sample
 
-This is a simple A-Frame project that demonstrates basic 3D objects in a virtual reality scene.
+A simple A-Frame VR scene with interactive elements and popup functionality.
 
 ## Features
-- A ground plane
-- A rotating box
-- A sphere
-- A cylinder
-- A sky background
-- Camera controls for looking around
+
+- Interactive 3D objects (box, sphere, cylinder)
+- Hover effects on all objects
+- Click popup on the green box
+- Rotating animation
+- Movement controls (WASD + mouse look)
+- Proper lighting and shadows
 
 ## How to Run
-1. You can run this project in several ways:
-   - Open the `index.html` file directly in your web browser
-   - Use a local development server (recommended)
 
-2. To use a local development server, you can use Python's built-in server:
-   ```bash
-   # Python 3
-   python -m http.server
-   
-   # Python 2
-   python -m SimpleHTTPServer
-   ```
-   Then open your browser and navigate to `http://localhost:8000`
+1. Clone this repository
+2. Open `basic_sample.html` in a web browser
+3. Use WASD keys to move around
+4. Use the mouse to look around
+5. Hover over objects to see them scale up
+6. Click the green box to see a popup
 
 ## Controls
-- Use your mouse to look around
-- Use WASD keys to move around (if you add movement controls)
-- Click and drag to rotate the view
 
-## Customization
-Feel free to modify the scene by:
-- Changing colors
-- Adjusting positions
-- Adding new objects
-- Modifying sizes and rotations 
+- WASD: Move around
+- Mouse: Look around
+- Click: Interact with objects
+- Hover: See objects scale up
+
+## Technologies Used
+
+- [A-Frame](https://aframe.io/) - Web framework for building virtual reality experiences
+- HTML5
+- JavaScript 

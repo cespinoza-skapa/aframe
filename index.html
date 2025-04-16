@@ -70,6 +70,61 @@
           });
         }
       });
+
+      AFRAME.registerComponent('box-popup', {
+        schema: {
+          message: {type: 'string', default: ''}
+        },
+        init: function () {
+          const box = this.el;
+          let popup = null;
+
+          const showPopup = (evt) => {
+            // Only show popup if the event target is the box itself
+            if (evt.target !== box) return;
+            if (popup) return;
+
+            popup = document.createElement('div');
+            popup.id = 'box-popup';
+            popup.style.position = 'absolute';
+            popup.style.top = '50%';
+            popup.style.left = '50%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            popup.style.padding = '20px';
+            popup.style.background = 'white';
+            popup.style.border = '2px solid black';
+            popup.style.borderRadius = '5px';
+            popup.style.zIndex = '1000';
+            popup.style.textAlign = 'center';
+            
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = 'Close';
+            closeButton.style.marginTop = '10px';
+            closeButton.style.padding = '5px 15px';
+            closeButton.style.cursor = 'pointer';
+            closeButton.onclick = () => {
+              document.body.removeChild(popup);
+              popup = null;
+            };
+            
+            popup.innerHTML = this.data.message + '<br>';
+            popup.appendChild(closeButton);
+            
+            document.body.appendChild(popup);
+          };
+
+          // Add click event listener
+          box.addEventListener('click', showPopup);
+
+          // Clean up on component removal
+          this.el.addEventListener('componentremoved', () => {
+            if (popup) {
+              document.body.removeChild(popup);
+              popup = null;
+            }
+          });
+        }
+      });
     </script>
   </head>
   <body>
@@ -86,14 +141,17 @@
         color="#7BC8A4">
       </a-plane>
       
-      <!-- Box -->
+      <!-- Box with click popup -->
       <a-box 
         position="-1 0.5 -3" 
         rotation="0 45 0" 
         width="1" 
         height="1" 
         depth="1" 
-        color="#4CC3D9">
+        color="#4CC3D9"
+        box-popup="message: Green box clicked"
+        cursor="rayOrigin: mouse"
+        class="green-box">
       </a-box>
       
       <!-- Sphere with blinking animation and hover message -->
