@@ -17,10 +17,60 @@
           this.el.setAttribute('material', 'opacity', opacity);
         }
       });
+
+      AFRAME.registerComponent('hover-message', {
+        init: function () {
+          const sphere = this.el;
+          let message = null;
+
+          const showMessage = (evt) => {
+            // Only show message if the event target is the sphere itself
+            if (evt.target !== sphere) return;
+            if (message) return;
+
+            message = document.createElement('div');
+            message.id = 'hover-message';
+            message.style.position = 'absolute';
+            message.style.top = '20px';
+            message.style.left = '50%';
+            message.style.transform = 'translateX(-50%)';
+            message.style.padding = '10px';
+            message.style.background = 'white';
+            message.style.border = '2px solid black';
+            message.style.borderRadius = '5px';
+            message.style.zIndex = '1000';
+            message.style.textAlign = 'center';
+            message.innerHTML = 'Red sphere hovered';
+            
+            document.body.appendChild(message);
+          };
+
+          const hideMessage = (evt) => {
+            // Only hide message if the event target is the sphere itself
+            if (evt.target !== sphere) return;
+            if (message) {
+              document.body.removeChild(message);
+              message = null;
+            }
+          };
+
+          // Add hover event listeners
+          sphere.addEventListener('mouseenter', showMessage);
+          sphere.addEventListener('mouseleave', hideMessage);
+
+          // Clean up on component removal
+          this.el.addEventListener('componentremoved', () => {
+            if (message) {
+              document.body.removeChild(message);
+              message = null;
+            }
+          });
+        }
+      });
     </script>
   </head>
   <body>
-    <a-scene>
+    <a-scene cursor="rayOrigin: mouse">
       <!-- Camera with movement controls -->
       <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
       
@@ -43,12 +93,15 @@
         color="#4CC3D9">
       </a-box>
       
-      <!-- Sphere with blinking animation -->
+      <!-- Sphere with blinking animation and hover message -->
       <a-sphere 
         position="0 1.25 -5" 
         radius="1.25" 
         color="#EF2D5E"
-        blink="speed: 1.5">
+        blink="speed: 1.5"
+        hover-message
+        cursor="rayOrigin: mouse"
+        class="red-sphere">
       </a-sphere>
       
       <!-- Cylinder -->
