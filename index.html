@@ -19,6 +19,9 @@
       });
 
       AFRAME.registerComponent('hover-message', {
+        schema: {
+          message: {type: 'string', default: ''}
+        },
         init: function () {
           const sphere = this.el;
           let message = null;
@@ -40,7 +43,7 @@
             message.style.borderRadius = '5px';
             message.style.zIndex = '1000';
             message.style.textAlign = 'center';
-            message.innerHTML = 'Red sphere hovered';
+            message.innerHTML = this.data.message;
             
             document.body.appendChild(message);
           };
@@ -99,7 +102,7 @@
         radius="1.25" 
         color="#EF2D5E"
         blink="speed: 1.5"
-        hover-message
+        hover-message="message: Red sphere hovered"
         cursor="rayOrigin: mouse"
         class="red-sphere">
       </a-sphere>
@@ -134,7 +137,10 @@
         position="8 1.5 -10" 
         radius="0.5" 
         color="#FFFF00"
-        blink="speed: 1.0">
+        blink="speed: 1.0"
+        hover-message="message: Yellow sphere hovered"
+        cursor="rayOrigin: mouse"
+        class="yellow-sphere">
       </a-sphere>
       
       <!-- Sky with 360 image -->
