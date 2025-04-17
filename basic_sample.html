@@ -88,6 +88,72 @@
           });
         }
       });
+
+      // Register webcam component with toggle functionality
+      AFRAME.registerComponent('webcam', {
+        schema: {
+          enabled: {type: 'boolean', default: true}
+        },
+        init: function () {
+          this.video = document.createElement('video');
+          this.video.setAttribute('autoplay', '');
+          this.video.setAttribute('playsinline', '');
+          this.video.style.display = 'none';
+          document.body.appendChild(this.video);
+
+          this.stream = null;
+          this.startWebcam();
+
+          // Create toggle button
+          this.toggleButton = document.createElement('button');
+          this.toggleButton.innerHTML = 'Toggle Webcam';
+          this.toggleButton.style.position = 'absolute';
+          this.toggleButton.style.top = '10px';
+          this.toggleButton.style.right = '10px';
+          this.toggleButton.style.padding = '10px';
+          this.toggleButton.style.zIndex = '1000';
+          this.toggleButton.onclick = () => {
+            this.data.enabled = !this.data.enabled;
+            if (this.data.enabled) {
+              this.startWebcam();
+            } else {
+              this.stopWebcam();
+            }
+          };
+          document.body.appendChild(this.toggleButton);
+        },
+        startWebcam: function() {
+          if (this.stream) return;
+          
+          navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+              this.stream = stream;
+              this.video.srcObject = stream;
+              this.video.play();
+              this.el.setAttribute('material', 'src', this.video);
+            })
+            .catch((err) => {
+              console.error('Error accessing webcam:', err);
+            });
+        },
+        stopWebcam: function() {
+          if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+            this.video.srcObject = null;
+            this.el.setAttribute('material', 'color', '#ECECEC');
+          }
+        },
+        remove: function() {
+          this.stopWebcam();
+          if (this.video) {
+            document.body.removeChild(this.video);
+          }
+          if (this.toggleButton) {
+            document.body.removeChild(this.toggleButton);
+          }
+        }
+      });
     </script>
   </head>
   <body>
@@ -138,8 +204,8 @@
         shadow>
       </a-cylinder>
 
-      <!-- Sky with gradient -->
-      <a-sky color="#ECECEC"></a-sky>
+      <!-- Sky with webcam background -->
+      <a-sky webcam></a-sky>
 
       <!-- Lighting -->
       <a-entity light="type: ambient; color: #BBB"></a-entity>
