@@ -1,15 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AR.js A-Frame Location-based</title>
-<script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-<script type='text/javascript' src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/three.js/build/ar-threex-location-only.js'></script>
-<script type='text/javascript' src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js'></script>
+<meta charset="utf-8">
+<title>AR Cube Scene 2</title>
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<script>
+  // Function to get current location
+  function getLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          
+          // Create the cube at the current location
+          const cube = document.createElement('a-entity');
+          cube.setAttribute('gps-entity-place', {
+            latitude: latitude,
+            longitude: longitude
+          });
+          cube.setAttribute('geometry', 'primitive: box');
+          cube.setAttribute('material', 'color: #4CC3D9');
+          cube.setAttribute('scale', '5 5 5');
+          
+          // Add the cube to the scene
+          const scene = document.querySelector('a-scene');
+          scene.appendChild(cube);
+          
+          // Update camera position
+          const camera = document.querySelector('[camera]');
+          camera.setAttribute('gps-camera', {
+            latitude: latitude,
+            longitude: longitude
+          });
+          
+          console.log('Cube placed at:', latitude, longitude);
+        },
+        function(error) {
+          console.error('Error getting location:', error);
+          alert('Unable to get your location. Please enable location services and try again.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  }
+</script>
 </head>
-<body>
-<a-scene vr-mode-ui='enabled: false' arjs='sourceType: webcam; videoTexture: true; debugUIEnabled: false' renderer='antialias: true; alpha: true'>
-    <a-camera gps-new-camera='gpsMinDistance: 5'></a-camera>
-    <a-entity material='color: red' geometry='primitive: box' gps-new-entity-place="latitude: 38.26790; longitude: -7773332" scale="10 10 10"></a-entity>
+<body style="margin: 0; overflow: hidden;">
+<a-scene 
+  embedded 
+  arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono;"
+  renderer="logarithmicDepthBuffer: true;"
+  vr-mode-ui="enabled: false">
+  
+  <!-- Camera with GPS controls -->
+  <a-camera gps-camera rotation-reader></a-camera>
+  
+  <!-- Lighting -->
+  <a-entity light="type: ambient; color: #BBB"></a-entity>
+  <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-0.5 1 1"></a-entity>
 </a-scene>
+
+<script>
+  // Get location when the page loads
+  window.onload = getLocation;
+</script>
 </body>
 </html>
