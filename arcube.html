@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR Fixed Cube (Direct Method)</title>
+  <title>Fixed AR Cube - Simple Approach</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <style>
-    .info-panel {
+    .ui-panel {
       position: fixed;
       bottom: 20px;
       left: 20px;
@@ -18,19 +18,19 @@
       border-radius: 5px;
       max-width: 300px;
     }
-
+    
     #debug {
       position: fixed;
       top: 10px;
       left: 10px;
       background: rgba(0,0,0,0.7);
       color: white;
-      padding: 5px;
+      padding: 10px;
       font-family: monospace;
       z-index: 999;
-      font-size: 12px;
+      max-width: 80%;
     }
-
+    
     .overlay {
       position: fixed;
       top: 0;
@@ -68,33 +68,126 @@
       cursor: pointer;
     }
   </style>
+  
+  <script>
+    // This component handles placing a persistent cube in the scene
+    AFRAME.registerComponent('place-cube', {
+      schema: {
+        height: {default: 1.5} // Height above marker in meters
+      },
+      
+      init: function() {
+        // Set up state
+        this.hasPlacedCube = false;
+        this.worldPos = new THREE.Vector3();
+        
+        // Get the marker element
+        this.marker = this.el;
+        
+        // Setup event listeners
+        this.marker.addEventListener('markerFound', this.onMarkerFound.bind(this));
+        
+        // Create debug element
+        this.debugEl = document.getElementById('debug');
+        this.debugLog('Initialized place-cube component. Waiting for marker...');
+      },
+      
+      debugLog: function(msg) {
+        if (this.debugEl) {
+          this.debugEl.textContent = msg;
+        }
+        console.log(msg);
+      },
+      
+      onMarkerFound: function() {
+        // Only place cube once
+        if (this.hasPlacedCube) {
+          return;
+        }
+        
+        this.debugLog('Marker found! Placing fixed cube...');
+        
+        try {
+          // Get marker position in world space
+          const markerPos = new THREE.Vector3();
+          this.marker.object3D.getWorldPosition(markerPos);
+          
+          // Create a new position for the cube, adjusted for height
+          this.worldPos.copy(markerPos);
+          this.worldPos.y += this.data.height;
+          
+          // Create a new standalone entity in the scene for our cube
+          const scene = document.querySelector('a-scene');
+          const cubeEntity = document.createElement('a-entity');
+          cubeEntity.setAttribute('id', 'fixed-cube-entity');
+          
+          // Log the position
+          this.debugLog(`Placing fixed cube at: x=${this.worldPos.x.toFixed(3)}, y=${this.worldPos.y.toFixed(3)}, z=${this.worldPos.z.toFixed(3)}`);
+          
+          // Set the position directly
+          cubeEntity.setAttribute('position', `${this.worldPos.x} ${this.worldPos.y} ${this.worldPos.z}`);
+          
+          // Add a visible cube
+          const cube = document.createElement('a-box');
+          cube.setAttribute('color', 'red');
+          cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000');
+          cubeEntity.appendChild(cube);
+          
+          // Add a text label
+          const text = document.createElement('a-text');
+          text.setAttribute('value', 'FIXED CUBE');
+          text.setAttribute('position', '0 1 0');
+          text.setAttribute('align', 'center');
+          text.setAttribute('color', 'white');
+          text.setAttribute('scale', '0.5 0.5 0.5');
+          cubeEntity.appendChild(text);
+          
+          // Add to scene
+          scene.appendChild(cubeEntity);
+          
+          // Update state
+          this.hasPlacedCube = true;
+          document.getElementById('status').textContent = 'Cube placed in fixed world position!';
+          
+          // Create a helper to show the position exactly
+          const helper = document.createElement('a-entity');
+          helper.setAttribute('geometry', 'primitive: sphere; radius: 0.1');
+          helper.setAttribute('material', 'color: green; opacity: 0.7');
+          helper.setAttribute('position', `${this.worldPos.x} ${this.worldPos.y} ${this.worldPos.z}`);
+          scene.appendChild(helper);
+          
+        } catch (err) {
+          this.debugLog(`Error placing cube: ${err.message}`);
+        }
+      }
+    });
+  </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
   <div id="startOverlay" class="overlay">
-    <h2>AR Cube Fixed in World Space</h2>
-    <p>This demo uses a marker to position a cube that stays fixed in real-world space.</p>
-    <p>Display this marker on your screen or print it:</p>
-    <iframe src="https://raw.githack.com/AR-js-org/AR.js/master/data/images/hiro.png" style="background: white; width: 80%; max-width: 300px; height: 300px;"></iframe>
-    <p>Once placed, the cube will stay fixed in position even when the marker is no longer visible.</p>
+    <h2>Fixed AR Cube - Simplified</h2>
+    <p>This demo places a fixed cube in world space that stays in position.</p>
+    <p>You need to scan this marker:</p>
+    <img src="https://raw.githack.com/AR-js-org/AR.js/master/data/images/hiro.png" 
+         style="background: white; border: 2px solid white; max-width: 250px; margin: 20px;">
+    <p>Point your camera at the marker, and a cube will appear and stay fixed in position.</p>
     <button id="startButton">Start AR Experience 4</button>
   </div>
 
-  <div id="debug"></div>
-  <div class="info-panel" id="infoPanel" style="display: none;">
-    Point the camera at the HIRO marker to place the cube.
-  </div>
+  <div id="debug">Initializing...</div>
+  <div id="status" class="ui-panel">Waiting for marker...</div>
 
   <a-scene 
-    embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false;"
-    renderer="logarithmicDepthBuffer: true;"
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;"
+    renderer="logarithmicDepthBuffer: true;" 
     vr-mode-ui="enabled: false">
     
-    <!-- This is our marker -->
-    <a-marker preset="hiro" id="hiroMarker">
-      <!-- Just a visual indicator when marker is visible -->
-      <a-box position="0 0.1 0" width="1" height="0.1" depth="1" color="yellow" opacity="0.5"></a-box>
-      <a-text value="Marker Detected" position="0 0.3 0" align="center" color="green" scale="0.5 0.5 0.5"></a-text>
+    <!-- Our marker with the component to place a fixed cube -->
+    <a-marker preset="hiro" place-cube="height: 1.5">
+      <!-- This is just a visual indicator when marker is detected -->
+      <a-box position="0 0.1 0" color="yellow" opacity="0.5" scale="1 0.1 1"></a-box>
+      <a-text value="MARKER DETECTED" position="0 0.3 0" align="center" color="green" scale="0.5 0.5 0.5"></a-text>
     </a-marker>
     
     <!-- Camera -->
@@ -102,107 +195,17 @@
   </a-scene>
 
   <script>
-    // Main initialization
-    window.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
       const startButton = document.getElementById('startButton');
       const startOverlay = document.getElementById('startOverlay');
-      const infoPanel = document.getElementById('infoPanel');
+      const statusPanel = document.getElementById('status');
       const debugPanel = document.getElementById('debug');
-      
-      let hasPlacedCube = false;
-      let scene, camera, cube;
-      
-      // Initialize Three.js scene for direct manipulation
-      function initThreeJS() {
-        // Get the A-Frame scene and camera
-        scene = document.querySelector('a-scene').object3D;
-        camera = document.querySelector('[camera]').object3D;
-        
-        // Get the marker
-        const marker = document.querySelector('#hiroMarker').object3D;
-        
-        // Track marker visibility
-        let isMarkerVisible = false;
-        let markerControls = document.querySelector('#hiroMarker').components['arjs-anchor'];
-        
-        // Create a debug function
-        function debugLog(text) {
-          debugPanel.innerHTML = text;
-          console.log(text);
-        }
-        
-        // Monitor marker visibility
-        setInterval(function() {
-          if (markerControls && markerControls.context && markerControls.context.arController) {
-            const pattern = markerControls.context.arController.patternMarkers[0];
-            if (pattern) {
-              isMarkerVisible = pattern.inCurrent;
-              if (!hasPlacedCube && isMarkerVisible) {
-                placeCube();
-              }
-            }
-          }
-        }, 100);
-        
-        // Function to place cube in absolute world coordinates
-        function placeCube() {
-          if (hasPlacedCube) return;
-          
-          // Create a new THREE.js cube directly
-          const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-          const material = new THREE.MeshNormalMaterial();
-          const cubeMesh = new THREE.Mesh(geometry, material);
-          
-          // Get the marker's current world position matrix
-          const markerWorldMatrix = new THREE.Matrix4();
-          marker.matrixWorld.decompose(
-            new THREE.Vector3(),
-            new THREE.Quaternion(),
-            new THREE.Vector3()
-          );
-          markerWorldMatrix.copy(marker.matrixWorld);
-          
-          // Extract position from marker matrix
-          const position = new THREE.Vector3();
-          const quaternion = new THREE.Quaternion();
-          const scale = new THREE.Vector3();
-          markerWorldMatrix.decompose(position, quaternion, scale);
-          
-          // Adjust position to be 5 feet (1.5m) above the marker
-          position.y += 1.5;
-          
-          // Set the cube's position directly in world space
-          cubeMesh.position.copy(position);
-          
-          // Add the cube directly to the Three.js scene
-          scene.add(cubeMesh);
-          
-          // Apply rotation animation
-          const clock = new THREE.Clock();
-          function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-            cubeMesh.rotation.y += delta * 0.5;
-          }
-          animate();
-          
-          // Flag that we've placed the cube
-          hasPlacedCube = true;
-          
-          // Update UI
-          infoPanel.innerHTML = 'Cube placed! It will stay fixed in world space.';
-          debugLog(`Cube placed at position: x:${position.x.toFixed(2)} y:${position.y.toFixed(2)} z:${position.z.toFixed(2)}`);
-        }
-      }
       
       // Start AR experience
       startButton.addEventListener('click', function() {
         startOverlay.style.display = 'none';
-        infoPanel.style.display = 'block';
-        debugPanel.style.display = 'block';
-        
-        // Initialize after a short delay to ensure all components are loaded
-        setTimeout(initThreeJS, 1000);
+        statusPanel.style.display = 'block';
+        debugPanel.textContent = 'AR started. Waiting for marker...';
       });
     });
   </script>
