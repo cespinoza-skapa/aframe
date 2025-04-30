@@ -2,80 +2,37 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR Cube with Fixed Initialization</title>
-  <!-- Use the most stable versions of AR.js and A-Frame -->
-  <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.0.4/dist/aframe-master.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
-  
+  <title>Basic AR Cube Demo</title>
+  <!-- Use the most reliable AR.js version -->
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/2.2.2/aframe/build/aframe-ar.min.js"></script>
   <style>
-    #startButton {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 15px 30px;
-      background: #4285f4;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      z-index: 999;
-      cursor: pointer;
-    }
-    
-    #instructions {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 10px;
-      text-align: center;
-      font-family: Arial, sans-serif;
-      z-index: 999;
-    }
-    
-    #debug {
-      position: fixed;
-      top: 40px;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.5);
-      color: yellow;
-      padding: 5px;
-      text-align: center;
-      font-family: monospace;
-      font-size: 12px;
-      z-index: 999;
-    }
-    
-    #intro {
+    .overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.8);
       color: white;
-      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      font-family: Arial, sans-serif;
+      z-index: 999;
       text-align: center;
       padding: 20px;
     }
     
-    #intro img {
-      max-width: 300px;
+    .overlay img {
+      max-width: 250px;
       background: white;
-      margin: 20px;
+      margin: 15px;
       border: 2px solid white;
     }
     
-    #intro button {
+    .overlay button {
       padding: 15px 30px;
       background: #4285f4;
       color: white;
@@ -85,223 +42,126 @@
       margin-top: 20px;
       cursor: pointer;
     }
-
-    .loading {
+    
+    .button {
       position: fixed;
-      bottom: 60px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      color: white;
       padding: 10px 20px;
-      border-radius: 20px;
-      font-family: Arial, sans-serif;
-      z-index: 999;
-    }
-
-    @keyframes dots {
-      0%, 20% { content: '.'; }
-      40% { content: '..'; }
-      60%, 100% { content: '...'; }
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      z-index: 10;
+      cursor: pointer;
     }
     
-    .dots::after {
-      content: '.';
-      animation: dots 1.5s infinite;
+    #status {
+      position: fixed;
+      top: 10px;
+      left: 0;
+      width: 100%;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 5px;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      z-index: 10;
     }
   </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
-  <div id="intro">
-    <h1>AR Cube with Simplified Marker Detection</h1>
-    <p>Point your camera at this HIRO marker:</p>
+  <!-- Intro screen -->
+  <div id="intro" class="overlay">
+    <h2>Simple AR Cube Demo</h2>
+    <p>This demo shows a 3D cube when pointing at a HIRO marker.</p>
+    <p>Point your camera at this marker:</p>
     <img src="https://raw.githack.com/AR-js-org/AR.js/master/data/images/HIRO.jpg" alt="HIRO Marker">
-    <p>Make sure the marker is well-lit, flat, and fills at least 20% of your camera view.</p>
-    <p><strong>Note:</strong> Ensure camera permissions are allowed when prompted!</p>
-    <button id="startARButton">Start AR Experience</button>
+    <button id="startButton">Start AR Experience 20</button>
   </div>
   
-  <div id="instructions" style="display: none;">
-    Point camera at HIRO marker
-  </div>
+  <!-- Status message -->
+  <div id="status" style="display: none;">Looking for HIRO marker...</div>
   
-  <div id="debug" style="display: none;">
-    Initializing AR...
-  </div>
-  
-  <div id="loading" class="loading" style="display: none;">
-    Looking for marker<span class="dots"></span>
-  </div>
-  
-  <!-- A simple fixed cube for testing - will only be visible after clicking the button -->
-  <a-scene embedded arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;">
-    <a-marker preset="hiro" id="hiro-marker">
-      <a-box position="0 0.5 0" material="color: yellow;" scale="0.3 0.3 0.3"></a-box>
-    </a-marker>
-    <a-entity camera></a-entity>
-  </a-scene>
-  
-  <button id="startButton" style="display: none;">Place Fixed Cube</button>
-  
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const introEl = document.getElementById('intro');
-      const startARButton = document.getElementById('startARButton');
-      const instructionsEl = document.getElementById('instructions');
-      const debugEl = document.getElementById('debug');
-      const loadingEl = document.getElementById('loading');
-      const startButton = document.getElementById('startButton');
+  <!-- Button to place fixed cube (will show once marker is found) -->
+  <button id="placeButton" class="button" style="display: none;">Place Fixed Cube</button>
+
+  <!-- AR Scene (initially hidden) -->
+  <div id="arScene" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+      <!-- HIRO Marker -->
+      <a-marker preset="hiro" id="hiroMarker">
+        <!-- Yellow box to indicate marker detection -->
+        <a-box position="0 0.5 0" color="yellow" scale="0.3 0.3 0.3"></a-box>
+      </a-marker>
       
-      let sceneLoaded = false;
+      <!-- Camera -->
+      <a-entity camera></a-entity>
+      
+      <!-- This entity will hold our fixed cube -->
+      <a-entity id="fixedCubeContainer"></a-entity>
+    </a-scene>
+  </div>
+
+  <script>
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get DOM elements
+      const intro = document.getElementById('intro');
+      const startButton = document.getElementById('startButton');
+      const status = document.getElementById('status');
+      const placeButton = document.getElementById('placeButton');
+      const arScene = document.getElementById('arScene');
+      const marker = document.getElementById('hiroMarker');
+      const fixedCubeContainer = document.getElementById('fixedCubeContainer');
+      
       let cubeCreated = false;
       
-      // Display initialization progress
-      function debugLog(message) {
-        if (debugEl) {
-          debugEl.textContent = message;
-          console.log(message);
-        }
-      }
-      
-      // Check for camera and AR.js initialization
-      function checkInitialization() {
-        // Check if scene is loaded
-        const scene = document.querySelector('a-scene');
-        if (!scene.hasLoaded) {
-          debugLog('Waiting for A-Frame scene to load...');
-          setTimeout(checkInitialization, 1000);
-          return;
-        }
+      // Start AR experience
+      startButton.addEventListener('click', function() {
+        // Hide intro and show AR scene
+        intro.style.display = 'none';
+        arScene.style.display = 'block';
+        status.style.display = 'block';
         
-        // Check for camera permissions
-        if (!navigator.mediaDevices) {
-          debugLog('ERROR: navigator.mediaDevices not available in this browser');
-          return;
-        }
-        
-        navigator.mediaDevices.getUserMedia({ video: true })
-          .then(function(stream) {
-            debugLog('Camera permission granted');
-            
-            // Check if AR.js is initialized
-            const arSystem = scene.systems['arjs'];
-            if (!arSystem) {
-              debugLog('Waiting for AR.js system...');
-              setTimeout(checkInitialization, 1000);
-              return;
-            }
-            
-            debugLog('AR.js system detected');
-            sceneLoaded = true;
-            
-            // Check for marker detection
-            checkMarkerDetection();
-            
-            // Start listening for marker events
-            const marker = document.getElementById('hiro-marker');
-            if (marker) {
-              marker.addEventListener('markerFound', onMarkerFound);
-              marker.addEventListener('markerLost', onMarkerLost);
-              debugLog('Marker events registered. Looking for HIRO marker...');
-            } else {
-              debugLog('ERROR: Marker element not found');
-            }
-          })
-          .catch(function(err) {
-            debugLog('ERROR: Camera permission denied: ' + err.message);
+        // Setup marker detection events
+        if (marker) {
+          marker.addEventListener('markerFound', function() {
+            status.textContent = 'HIRO marker found! Click button to place cube.';
+            placeButton.style.display = 'block';
           });
-      }
-      
-      // Check if markers are being detected
-      function checkMarkerDetection() {
-        // Try direct access to video element
-        const video = document.querySelector('video');
-        if (video) {
-          // Video is available
-          debugLog('Video feed detected with dimensions: ' + video.videoWidth + 'x' + video.videoHeight);
-        } else {
-          debugLog('Video element not found');
+          
+          marker.addEventListener('markerLost', function() {
+            if (!cubeCreated) {
+              status.textContent = 'Marker lost. Point camera at HIRO marker again.';
+              placeButton.style.display = 'none';
+            } else {
+              status.textContent = 'Cube placed in fixed position.';
+            }
+          });
         }
-      }
-      
-      // Marker found handler
-      function onMarkerFound() {
-        instructionsEl.textContent = 'Marker found! Click "Place Fixed Cube" button.';
-        debugLog('HIRO marker detected! Ready to place cube.');
-        startButton.style.display = 'block';
-        loadingEl.style.display = 'none';
-      }
-      
-      // Marker lost handler
-      function onMarkerLost() {
-        debugLog('Marker lost from view');
-        instructionsEl.textContent = cubeCreated ? 
-          'The cube should remain fixed in world space!' : 
-          'Point camera at HIRO marker again';
-        
-        if (!cubeCreated) {
-          startButton.style.display = 'none';
-          loadingEl.style.display = 'block';
-        }
-      }
-      
-      // Start the AR experience
-      startARButton.addEventListener('click', function() {
-        introEl.style.display = 'none';
-        instructionsEl.style.display = 'block';
-        debugEl.style.display = 'block';
-        loadingEl.style.display = 'block';
-        
-        debugLog('Starting AR experience. Initializing systems...');
-        
-        // Start initialization checks
-        checkInitialization();
-        
-        // Add a timeout for user feedback if no marker is found
-        setTimeout(function() {
-          if (!cubeCreated && sceneLoaded) {
-            debugLog('Still looking for marker. Make sure it is well-lit and clearly visible to the camera.');
-          }
-        }, 10000);
       });
       
-      // Place cube button - create a simple fixed cube when clicked
-      startButton.addEventListener('click', function() {
+      // Place fixed cube when button is clicked
+      placeButton.addEventListener('click', function() {
         if (cubeCreated) return;
         
-        const scene = document.querySelector('a-scene');
-        
-        // Create a fixed cube directly in the scene
-        const fixedCube = document.createElement('a-entity');
-        fixedCube.setAttribute('position', '0 0 -3'); // 3 meters in front of camera
-        
-        // Create a red cube
+        // Create a fixed position cube (relative to the camera's view)
         const cube = document.createElement('a-box');
         cube.setAttribute('color', 'red');
+        cube.setAttribute('position', '0 0 -3');  // 3 meters in front of camera
         cube.setAttribute('scale', '0.5 0.5 0.5');
-        cube.setAttribute('position', '0 1.5 0'); // 1.5 meters above ground
-        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000');
-        fixedCube.appendChild(cube);
+        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000');
         
-        // Add a text label
-        const text = document.createElement('a-text');
-        text.setAttribute('value', 'FIXED CUBE');
-        text.setAttribute('position', '0 2.1 0');
-        text.setAttribute('align', 'center');
-        text.setAttribute('color', 'white');
-        text.setAttribute('look-at', '[camera]');
-        fixedCube.appendChild(text);
+        // Add to scene at current camera position
+        document.querySelector('a-scene').appendChild(cube);
         
-        // Add to scene
-        scene.appendChild(fixedCube);
-        
+        // Mark as created
         cubeCreated = true;
-        startButton.style.display = 'none';
-        instructionsEl.textContent = 'Cube created! It should remain fixed in place as you move around.';
-        debugLog('Fixed cube created in front of camera');
-        
-        // Hide loading
-        loadingEl.style.display = 'none';
+        status.textContent = 'Cube placed! It should stay fixed in position as you move.';
+        placeButton.textContent = 'Cube Placed';
       });
     });
   </script>
