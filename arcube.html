@@ -2,157 +2,129 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR Cubes - Fixed Position</title>
-  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <title>Simple AR Cube Placer</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <style>
-    .info-panel {
+    #arButton {
       position: fixed;
       bottom: 20px;
-      left: 20px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 10px;
-      font-family: Arial, sans-serif;
-      z-index: 999;
-      border-radius: 5px;
-      max-width: 300px;
-    }
-    
-    #placeButton {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 15px 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 20px;
       background: #4285f4;
       color: white;
       border: none;
       border-radius: 5px;
       font-size: 16px;
       z-index: 999;
+      cursor: pointer;
     }
     
-    #debug {
+    .overlay {
       position: fixed;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.7);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       color: white;
-      padding: 5px;
-      font-family: monospace;
-      font-size: 12px;
-      z-index: 999;
+      font-family: Arial, sans-serif;
+      z-index: 1000;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .overlay h2 {
+      margin-bottom: 20px;
+    }
+    
+    .overlay p {
+      margin-bottom: 30px;
+      max-width: 600px;
+    }
+    
+    .overlay button {
+      padding: 12px 24px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-  <button id="placeButton">PLACE THE CUBE HERE</button>
-  <div class="info-panel">
-    Press the button to place a cube 5 feet away from your current position.
+<body>
+  <div id="startOverlay" class="overlay">
+    <h2>Simple AR Cube Placement</h2>
+    <p>This demo places a rotating red cube 1.5 meters (5 feet) in front of you when you tap the button. The cube will stay fixed in real-world space.</p>
+    <button id="startButton">Start AR Experience</button>
   </div>
-  <div id="debug"></div>
 
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
-    <!-- Set up a container for our content -->
-    <a-entity id="objects-container"></a-entity>
+  <a-scene id="scene" embedded>
+    <a-entity id="rig">
+      <a-entity id="camera" camera look-controls position="0 1.6 0"></a-entity>
+    </a-entity>
     
-    <!-- Camera -->
-    <a-camera look-controls-enabled="false" position="0 1.6 0"></a-camera>
+    <a-entity light="type: ambient; color: #BBB"></a-entity>
+    <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-0.5 1 1"></a-entity>
   </a-scene>
+  
+  <button id="arButton" style="display: none;">PLACE A CUBE HERE</button>
 
   <script>
-    // Show debug info
-    function updateDebug(text) {
-      document.getElementById('debug').innerHTML = text;
-    }
-    
     document.addEventListener('DOMContentLoaded', function() {
-      const placeButton = document.getElementById('placeButton');
-      const infoPanel = document.querySelector('.info-panel');
-      const container = document.getElementById('objects-container');
-      const camera = document.querySelector('a-camera');
+      const startButton = document.getElementById('startButton');
+      const startOverlay = document.getElementById('startOverlay');
+      const arButton = document.getElementById('arButton');
+      const scene = document.getElementById('scene');
+      const camera = document.getElementById('camera');
       
-      let scene = document.querySelector('a-scene');
       let cubeCount = 0;
-      let originPosition = null;
       
-      // Listen for arjs-video-loaded event to ensure AR.js is ready
-      scene.addEventListener('loaded', function() {
-        updateDebug('Scene loaded and ready');
-        
-        // Save origin position when first loaded
-        originPosition = camera.getAttribute('position');
-        updateDebug(`Origin position set: ${JSON.stringify(originPosition)}`);
+      // Start AR experience
+      startButton.addEventListener('click', function() {
+        startOverlay.style.display = 'none';
+        arButton.style.display = 'block';
       });
       
-      // Place a cube function
-      function placeCube() {
+      // Place cube button
+      arButton.addEventListener('click', function() {
         cubeCount++;
-        updateDebug(`Placing cube ${cubeCount}...`);
         
-        // Get current camera position and rotation
+        // Get camera position and rotation
         const camPosition = camera.getAttribute('position');
         const camRotation = camera.getAttribute('rotation');
         
-        // Convert rotation to radians
-        const yRotRadians = THREE.MathUtils.degToRad(camRotation.y);
+        // Convert camera's Y rotation to radians
+        const rotationY = camRotation.y * (Math.PI / 180);
         
-        // Define cube distance (5 feet = ~1.5 meters)
+        // Calculate position 5 feet (1.5 meters) in front of camera
         const distance = 1.5;
+        const xPosition = camPosition.x - Math.sin(rotationY) * distance;
+        const zPosition = camPosition.z - Math.cos(rotationY) * distance;
         
-        // Calculate position in front of camera
-        const xPos = camPosition.x - Math.sin(yRotRadians) * distance;
-        const zPos = camPosition.z - Math.cos(yRotRadians) * distance;
-        
-        // Create parent entity for the cube that won't move with camera
-        const cubeParent = document.createElement('a-entity');
-        cubeParent.setAttribute('id', `cube-parent-${cubeCount}`);
-        cubeParent.setAttribute('position', `${xPos} 0 ${zPos}`);
-        container.appendChild(cubeParent);
-        
-        // Generate random color
-        const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        // Create the actual cube
+        // Create a cube
         const cube = document.createElement('a-box');
         cube.setAttribute('id', `cube-${cubeCount}`);
-        cube.setAttribute('position', '0 1.5 0'); // 1.5m above ground
-        cube.setAttribute('color', randomColor);
-        cube.setAttribute('scale', '0.5 0.5 0.5');
-        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000');
-        cubeParent.appendChild(cube);
+        cube.setAttribute('position', `${xPosition} ${camPosition.y} ${zPosition}`);
+        cube.setAttribute('color', 'red');
+        cube.setAttribute('width', '0.5');
+        cube.setAttribute('height', '0.5');
+        cube.setAttribute('depth', '0.5');
+        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear');
         
-        // Add line from ground to cube
-        const line = document.createElement('a-entity');
-        line.setAttribute('line', `start: 0 0 0; end: 0 1.5 0; color: ${randomColor}`);
-        cubeParent.appendChild(line);
+        // Add cube to scene
+        scene.appendChild(cube);
         
-        // Add text label
-        const text = document.createElement('a-text');
-        text.setAttribute('value', `Cube ${cubeCount}`);
-        text.setAttribute('position', '0 2.1 0');
-        text.setAttribute('color', 'white');
-        text.setAttribute('align', 'center');
-        text.setAttribute('width', '4');
-        text.setAttribute('side', 'double');
-        text.setAttribute('billboard', '');
-        cubeParent.appendChild(text);
+        // Update the button text
+        arButton.textContent = `PLACED CUBE ${cubeCount} - TAP FOR MORE`;
         
-        // Update info panel
-        infoPanel.innerHTML = `${cubeCount} cube(s) placed. Cube ${cubeCount} is at position: x=${xPos.toFixed(2)}, z=${zPos.toFixed(2)}`;
-        
-        updateDebug(`Cube ${cubeCount} placed at x: ${xPos.toFixed(2)}, z: ${zPos.toFixed(2)}`);
-      }
-      
-      // Add event listener for place button
-      placeButton.addEventListener('click', placeCube);
-      
-      // Add a key event listener for debugging (space bar to place cube)
-      document.addEventListener('keydown', function(event) {
-        if (event.code === 'Space') {
-          placeCube();
-        }
+        console.log(`Cube ${cubeCount} placed at position:`, xPosition, camPosition.y, zPosition);
       });
     });
   </script>
