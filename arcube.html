@@ -2,32 +2,64 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Fixed AR Cube - Absolute Positioning</title>
-  
-  <!-- AR.js and A-Frame libraries -->
+  <title>Super Simple Fixed AR Cube</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  
   <style>
-    .overlay {
+    #startButton {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 30px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      z-index: 999;
+      cursor: pointer;
+    }
+    
+    #instructions {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      z-index: 999;
+    }
+    
+    #intro {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      background: rgba(0,0,0,0.8);
-      color: white;
-      font-family: Arial, sans-serif;
-      z-index: 999;
+      z-index: 1000;
       text-align: center;
       padding: 20px;
     }
     
-    .overlay button {
+    #intro img {
+      max-width: 300px;
+      background: white;
+      margin: 20px;
+      border: 2px solid white;
+    }
+    
+    #intro button {
       padding: 15px 30px;
       background: #4285f4;
       color: white;
@@ -37,152 +69,137 @@
       margin-top: 20px;
       cursor: pointer;
     }
-
-    .marker-info {
-      text-align: center;
-      margin: 20px 0;
-    }
-    
-    .marker-info img {
-      max-width: 250px;
-      background: white;
-      border: 2px solid white;
-      margin: 10px;
-    }
-    
-    #status {
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      width: 100%;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 10px;
-      text-align: center;
-      font-family: Arial, sans-serif;
-      z-index: 10;
-    }
   </style>
 </head>
-
-<body style="margin: 0; overflow: hidden">
-  <!-- Intro overlay -->
-  <div id="intro" class="overlay">
-    <h1>World-Fixed AR Cube</h1>
-    <p>This demo creates a cube that stays fixed in real-world space.</p>
-    
-    <div class="marker-info">
-      <p>You'll need to scan this HIRO marker:</p>
-    </div>
-    
-    <p>The cube will be created at the marker's position, but will stay fixed in world space even when you move around.</p>
-    <button id="startButton">Start AR Experience 6</button>
+<body style="margin: 0; overflow: hidden;">
+  <div id="intro">
+    <h1>Fixed AR Cube</h1>
+    <p>Point your camera at this marker:</p>
+    <img src="https://raw.githack.com/AR-js-org/AR.js/master/data/images/hiro.png">
+    <p>Once detected, a red cube will appear nearby that stays fixed in world space.</p>
+    <button id="startARButton">Start AR Experience 6</button>
   </div>
   
-  <div id="status">Waiting for marker...</div>
-
-  <!-- AR.js Scene -->
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
-    renderer="precision: mediump; antialias: true; alpha: true"
-    vr-mode-ui="enabled: false">
+  <div id="instructions" style="display: none;">
+    Point camera at HIRO marker to place the cube
+  </div>
+  
+  <a-scene 
+    embedded 
+    arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;"
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true;">
     
-    <!-- Main marker that will be used to place the cube -->
-    <a-marker preset="hiro" id="marker" emitevents="true">
-      <a-entity id="marker-indicator">
-        <a-box position="0 0.1 0" scale="1 0.1 1" color="yellow" opacity="0.5"></a-box>
-        <a-text value="MARKER" position="0 0.3 0" align="center" color="lime" scale="0.5 0.5 0.5"></a-text>
-      </a-entity>
+    <!-- This is our marker -->
+    <a-marker 
+      preset="hiro" 
+      id="hiroMarker"
+      raycaster="objects: .clickable"
+      emitevents="true"
+      cursor="fuse: false; rayOrigin: mouse;">
+      
+      <!-- Yellow box to show marker is detected -->
+      <a-box position="0 0.05 0" scale="0.8 0.1 0.8" color="yellow" opacity="0.5"></a-box>
+      <a-text value="MARKER FOUND" position="0 0.2 0" align="center" color="green" scale="0.5 0.5 0.5"></a-text>
     </a-marker>
     
     <!-- Camera -->
     <a-entity camera></a-entity>
-    
-    <!-- This container will hold our fixed cube (set outside the marker to stay fixed) -->
-    <a-entity id="fixed-cube-container"></a-entity>
+
+    <!-- This is where we'll place our fixed world cube (intentionally not inside the marker) -->
+    <a-entity id="worldRoot"></a-entity>
   </a-scene>
   
+  <button id="startButton" style="display: none;">Place Fixed Cube</button>
+  
   <script>
-    window.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
+      const introEl = document.getElementById('intro');
+      const startARButton = document.getElementById('startARButton');
+      const instructionsEl = document.getElementById('instructions');
       const startButton = document.getElementById('startButton');
-      const introOverlay = document.getElementById('intro');
-      const statusDisplay = document.getElementById('status');
-      const marker = document.getElementById('marker');
-      const fixedContainer = document.getElementById('fixed-cube-container');
-      
-      let hasPlacedCube = false;
+      const marker = document.getElementById('hiroMarker');
+      const worldRoot = document.getElementById('worldRoot');
+      let cubeCreated = false;
       
       // Start the AR experience
-      startButton.addEventListener('click', function() {
-        introOverlay.style.display = 'none';
-        statusDisplay.textContent = 'Looking for HIRO marker...';
+      startARButton.addEventListener('click', function() {
+        introEl.style.display = 'none';
+        instructionsEl.style.display = 'block';
       });
       
-      // Handle marker detection
+      // Monitor marker visibility
       marker.addEventListener('markerFound', function() {
-        statusDisplay.textContent = 'Marker found!';
-        
-        // Only place the cube once
-        if (hasPlacedCube) return;
-        
-        // Get the marker's current world position
-        const scene = document.querySelector('a-scene').object3D;
-        const markerPosition = new THREE.Vector3();
-        const markerRotation = new THREE.Quaternion();
-        const markerScale = new THREE.Vector3();
-        
-        // Extract the marker's world position
-        marker.object3D.matrixWorld.decompose(markerPosition, markerRotation, markerScale);
-        
-        // Place our cube in the scene, not as a child of the marker
-        const fixedCube = document.createElement('a-entity');
-        fixedCube.id = 'world-fixed-cube';
-        
-        // Position 5 feet (1.5m) above the marker
-        const cubeHeight = 1.5;
-        markerPosition.y += cubeHeight;
-        
-        // Set the world position directly
-        fixedCube.setAttribute('position', markerPosition);
-        
-        // Create the cube inside a wrapper entity to make position setting more reliable
-        const cube = document.createElement('a-box');
-        cube.setAttribute('color', 'red');
-        cube.setAttribute('scale', '0.5 0.5 0.5');
-        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000');
-        fixedCube.appendChild(cube);
-        
-        // Add a label above the cube
-        const label = document.createElement('a-text');
-        label.setAttribute('value', 'FIXED CUBE');
-        label.setAttribute('position', '0 0.8 0');
-        label.setAttribute('align', 'center');
-        label.setAttribute('color', 'white');
-        label.setAttribute('scale', '0.7 0.7 0.7');
-        label.setAttribute('billboard', '');
-        fixedCube.appendChild(label);
-        
-        // Add a line from the original marker position
-        const line = document.createElement('a-entity');
-        line.setAttribute('line', `start: 0 -${cubeHeight} 0; end: 0 0 0; color: blue`);
-        fixedCube.appendChild(line);
-        
-        // Add to the fixed container, not the marker
-        document.querySelector('a-scene').appendChild(fixedCube);
-        
-        // Set flags
-        hasPlacedCube = true;
-        statusDisplay.textContent = 'Cube placed in world space! It should stay fixed as you move.';
-        
-        console.log('Fixed cube placed at:', markerPosition);
+        instructionsEl.textContent = 'Marker found! Click "Place Fixed Cube" button.';
+        startButton.style.display = 'block';
       });
       
-      // Handle marker loss
       marker.addEventListener('markerLost', function() {
-        statusDisplay.textContent = hasPlacedCube ? 
-          'Marker lost, but cube should remain fixed in world space!' : 
-          'Marker lost. Find it again to place the cube.';
+        instructionsEl.textContent = cubeCreated ? 
+          'The cube should remain fixed in world space!' : 
+          'Point camera at HIRO marker to place the cube';
+        
+        if (!cubeCreated) {
+          startButton.style.display = 'none';
+        }
+      });
+      
+      // Place cube button
+      startButton.addEventListener('click', function() {
+        if (cubeCreated) return;
+        
+        try {
+          // Calculate where to place the cube
+          // Get marker position in world space
+          const markerObj = marker.object3D;
+          const worldPosition = new THREE.Vector3();
+          markerObj.getWorldPosition(worldPosition);
+          
+          // Move position 1 meter in front of marker
+          const markerRotation = markerObj.rotation;
+          const forward = new THREE.Vector3(0, 0, -1);
+          forward.applyQuaternion(markerObj.quaternion);
+          forward.normalize();
+          forward.multiplyScalar(1); // 1 meter in front
+          
+          // Create a final position
+          const finalPosition = new THREE.Vector3();
+          finalPosition.addVectors(worldPosition, forward);
+          finalPosition.y += 0.5; // Raise it 0.5 meters above ground
+          
+          // Create our fixed cube directly in the scene
+          const cube = document.createElement('a-box');
+          cube.setAttribute('id', 'fixed-cube');
+          cube.setAttribute('position', `${finalPosition.x} ${finalPosition.y} ${finalPosition.z}`);
+          cube.setAttribute('color', 'red');
+          cube.setAttribute('width', '0.5');
+          cube.setAttribute('height', '0.5');
+          cube.setAttribute('depth', '0.5');
+          cube.setAttribute('rotation', '0 45 0');
+          cube.setAttribute('animation', 'property: rotation; to: 0 405 0; loop: true; dur: 10000');
+          
+          // Add the cube to world root
+          worldRoot.appendChild(cube);
+          
+          // Add a text label
+          const text = document.createElement('a-text');
+          text.setAttribute('value', 'FIXED CUBE');
+          text.setAttribute('position', `${finalPosition.x} ${finalPosition.y + 0.5} ${finalPosition.z}`);
+          text.setAttribute('align', 'center');
+          text.setAttribute('color', 'white');
+          text.setAttribute('scale', '0.5 0.5 0.5');
+          text.setAttribute('look-at', '[camera]');
+          worldRoot.appendChild(text);
+          
+          cubeCreated = true;
+          startButton.style.display = 'none';
+          instructionsEl.textContent = 'Cube created! It should remain fixed in world space as you move around.';
+          
+          console.log('Fixed cube placed at position:', finalPosition);
+        } catch (error) {
+          console.error('Error creating cube:', error);
+          instructionsEl.textContent = 'Error creating cube: ' + error.message;
+        }
       });
     });
   </script>
