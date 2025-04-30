@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR Cube with Improved Marker Detection</title>
-  <!-- Using older A-Frame version for better compatibility -->
-  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-  <!-- Using specific version of AR.js known to work well with pattern markers -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/3.0.0/aframe/build/aframe-ar.js"></script>
+  <title>AR Cube with Fixed Initialization</title>
+  <!-- Use the most stable versions of AR.js and A-Frame -->
+  <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.0.4/dist/aframe-master.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
+  
   <style>
     #startButton {
       position: fixed;
@@ -86,7 +86,6 @@
       cursor: pointer;
     }
 
-    /* Add a loading indicator */
     .loading {
       position: fixed;
       bottom: 60px;
@@ -100,7 +99,6 @@
       z-index: 999;
     }
 
-    /* Add dot animation */
     @keyframes dots {
       0%, 20% { content: '.'; }
       40% { content: '..'; }
@@ -115,10 +113,12 @@
 </head>
 <body style="margin: 0; overflow: hidden;">
   <div id="intro">
-    <h1>AR Cube with Improved Marker Detection</h1>
+    <h1>AR Cube with Simplified Marker Detection</h1>
     <p>Point your camera at this HIRO marker:</p>
-    <p>Make sure the marker is well-lit and your camera can see it clearly.</p>
-    <button id="startARButton">Start AR Experience 10</button>
+    <img src="https://raw.githack.com/AR-js-org/AR.js/master/data/images/HIRO.jpg" alt="HIRO Marker">
+    <p>Make sure the marker is well-lit, flat, and fills at least 20% of your camera view.</p>
+    <p><strong>Note:</strong> Ensure camera permissions are allowed when prompted!</p>
+    <button id="startARButton">Start AR Experience</button>
   </div>
   
   <div id="instructions" style="display: none;">
@@ -133,38 +133,12 @@
     Looking for marker<span class="dots"></span>
   </div>
   
-  <a-scene 
-    embedded 
-    arjs="sourceType: webcam; 
-          debugUIEnabled: false; 
-          detectionMode: mono_and_matrix; 
-          matrixCodeType: 3x3;
-          patternRatio: 0.65;
-          trackingMethod: best;"
-    vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true; precision: mediump; antialias: true;"
-    id="scene">
-    
-    <!-- This is our marker - using a larger default size for better detection -->
-    <a-marker 
-      preset="hiro" 
-      id="hiroMarker"
-      registerevents
-      size="0.15"
-      smooth="true"
-      smoothCount="10"
-      smoothTolerance="0.01">
-      
-      <!-- Visual indicator when marker is detected -->
-      <a-box position="0 0.05 0" scale="0.8 0.1 0.8" color="yellow" opacity="0.5"></a-box>
-      <a-text value="MARKER FOUND" position="0 0.2 0" align="center" color="green" scale="0.5 0.5 0.5"></a-text>
+  <!-- A simple fixed cube for testing - will only be visible after clicking the button -->
+  <a-scene embedded arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;">
+    <a-marker preset="hiro" id="hiro-marker">
+      <a-box position="0 0.5 0" material="color: yellow;" scale="0.3 0.3 0.3"></a-box>
     </a-marker>
-    
-    <!-- Camera -->
     <a-entity camera></a-entity>
-
-    <!-- This is where we'll place our fixed world cube -->
-    <a-entity id="worldRoot"></a-entity>
   </a-scene>
   
   <button id="startButton" style="display: none;">Place Fixed Cube</button>
@@ -177,56 +151,11 @@
       const debugEl = document.getElementById('debug');
       const loadingEl = document.getElementById('loading');
       const startButton = document.getElementById('startButton');
-      const marker = document.getElementById('hiroMarker');
-      const worldRoot = document.getElementById('worldRoot');
-      const scene = document.querySelector('a-scene');
       
+      let sceneLoaded = false;
       let cubeCreated = false;
-      let markerFound = false;
-      let startTime;
       
-      // Add custom event handler for marker
-      if (marker) {
-        marker.addEventListener('markerFound', onMarkerFound);
-        marker.addEventListener('markerLost', onMarkerLost);
-      }
-      
-      // Register AR.js callback to get more detailed info on marker detection
-      const registerAREvents = function() {
-        const arSystem = scene.systems['arjs'];
-        if (arSystem && arSystem._arController && arSystem._arController.addEventListener) {
-          debugLog('AR.js controller found, registering events');
-          arSystem._arController.addEventListener('getMarker', function(e) {
-            debugLog('Marker data received: confidence=' + e.data.confidence.toFixed(2));
-          });
-        } else {
-          debugLog('AR.js controller not initialized yet');
-          setTimeout(registerAREvents, 1000);
-        }
-      };
-      
-      // Start the AR experience
-      startARButton.addEventListener('click', function() {
-        introEl.style.display = 'none';
-        instructionsEl.style.display = 'block';
-        debugEl.style.display = 'block';
-        loadingEl.style.display = 'block';
-        
-        startTime = Date.now();
-        debugLog('AR started at: ' + new Date().toLocaleTimeString());
-        
-        // Check for initialization
-        setTimeout(registerAREvents, 1000);
-        
-        // Add a timeout to show help if marker isn't found
-        setTimeout(function() {
-          if (!markerFound) {
-            debugLog('No marker detected yet. Make sure lighting is good and camera can see marker clearly.');
-          }
-        }, 10000);
-      });
-      
-      // Debug function
+      // Display initialization progress
       function debugLog(message) {
         if (debugEl) {
           debugEl.textContent = message;
@@ -234,12 +163,71 @@
         }
       }
       
+      // Check for camera and AR.js initialization
+      function checkInitialization() {
+        // Check if scene is loaded
+        const scene = document.querySelector('a-scene');
+        if (!scene.hasLoaded) {
+          debugLog('Waiting for A-Frame scene to load...');
+          setTimeout(checkInitialization, 1000);
+          return;
+        }
+        
+        // Check for camera permissions
+        if (!navigator.mediaDevices) {
+          debugLog('ERROR: navigator.mediaDevices not available in this browser');
+          return;
+        }
+        
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(function(stream) {
+            debugLog('Camera permission granted');
+            
+            // Check if AR.js is initialized
+            const arSystem = scene.systems['arjs'];
+            if (!arSystem) {
+              debugLog('Waiting for AR.js system...');
+              setTimeout(checkInitialization, 1000);
+              return;
+            }
+            
+            debugLog('AR.js system detected');
+            sceneLoaded = true;
+            
+            // Check for marker detection
+            checkMarkerDetection();
+            
+            // Start listening for marker events
+            const marker = document.getElementById('hiro-marker');
+            if (marker) {
+              marker.addEventListener('markerFound', onMarkerFound);
+              marker.addEventListener('markerLost', onMarkerLost);
+              debugLog('Marker events registered. Looking for HIRO marker...');
+            } else {
+              debugLog('ERROR: Marker element not found');
+            }
+          })
+          .catch(function(err) {
+            debugLog('ERROR: Camera permission denied: ' + err.message);
+          });
+      }
+      
+      // Check if markers are being detected
+      function checkMarkerDetection() {
+        // Try direct access to video element
+        const video = document.querySelector('video');
+        if (video) {
+          // Video is available
+          debugLog('Video feed detected with dimensions: ' + video.videoWidth + 'x' + video.videoHeight);
+        } else {
+          debugLog('Video element not found');
+        }
+      }
+      
       // Marker found handler
       function onMarkerFound() {
-        markerFound = true;
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         instructionsEl.textContent = 'Marker found! Click "Place Fixed Cube" button.';
-        debugLog('Marker found after ' + elapsed + ' seconds');
+        debugLog('HIRO marker detected! Ready to place cube.');
         startButton.style.display = 'block';
         loadingEl.style.display = 'none';
       }
@@ -249,7 +237,7 @@
         debugLog('Marker lost from view');
         instructionsEl.textContent = cubeCreated ? 
           'The cube should remain fixed in world space!' : 
-          'Point camera at HIRO marker to place the cube';
+          'Point camera at HIRO marker again';
         
         if (!cubeCreated) {
           startButton.style.display = 'none';
@@ -257,72 +245,63 @@
         }
       }
       
-      // Place cube button
+      // Start the AR experience
+      startARButton.addEventListener('click', function() {
+        introEl.style.display = 'none';
+        instructionsEl.style.display = 'block';
+        debugEl.style.display = 'block';
+        loadingEl.style.display = 'block';
+        
+        debugLog('Starting AR experience. Initializing systems...');
+        
+        // Start initialization checks
+        checkInitialization();
+        
+        // Add a timeout for user feedback if no marker is found
+        setTimeout(function() {
+          if (!cubeCreated && sceneLoaded) {
+            debugLog('Still looking for marker. Make sure it is well-lit and clearly visible to the camera.');
+          }
+        }, 10000);
+      });
+      
+      // Place cube button - create a simple fixed cube when clicked
       startButton.addEventListener('click', function() {
         if (cubeCreated) return;
         
-        try {
-          // Calculate where to place the cube
-          // Get marker position in world space
-          const markerObj = marker.object3D;
-          const worldPosition = new THREE.Vector3();
-          markerObj.getWorldPosition(worldPosition);
-          
-          debugLog('Got marker position: ' + JSON.stringify({
-            x: worldPosition.x.toFixed(2), 
-            y: worldPosition.y.toFixed(2), 
-            z: worldPosition.z.toFixed(2)
-          }));
-          
-          // Move position 1 meter in front of marker
-          const forward = new THREE.Vector3(0, 0, -1);
-          forward.applyQuaternion(markerObj.quaternion);
-          forward.normalize();
-          forward.multiplyScalar(1); // 1 meter in front
-          
-          // Create a final position
-          const finalPosition = new THREE.Vector3();
-          finalPosition.addVectors(worldPosition, forward);
-          finalPosition.y += 0.5; // Raise it 0.5 meters above ground
-          
-          // Create our fixed cube directly in the scene
-          const cube = document.createElement('a-box');
-          cube.setAttribute('id', 'fixed-cube');
-          cube.setAttribute('position', `${finalPosition.x} ${finalPosition.y} ${finalPosition.z}`);
-          cube.setAttribute('color', 'red');
-          cube.setAttribute('width', '0.5');
-          cube.setAttribute('height', '0.5');
-          cube.setAttribute('depth', '0.5');
-          cube.setAttribute('rotation', '0 45 0');
-          cube.setAttribute('animation', 'property: rotation; to: 0 405 0; loop: true; dur: 10000');
-          
-          // Add the cube to world root
-          worldRoot.appendChild(cube);
-          
-          // Add a text label
-          const text = document.createElement('a-text');
-          text.setAttribute('value', 'FIXED CUBE');
-          text.setAttribute('position', `${finalPosition.x} ${finalPosition.y + 0.5} ${finalPosition.z}`);
-          text.setAttribute('align', 'center');
-          text.setAttribute('color', 'white');
-          text.setAttribute('scale', '0.5 0.5 0.5');
-          text.setAttribute('look-at', '[camera]');
-          worldRoot.appendChild(text);
-          
-          cubeCreated = true;
-          startButton.style.display = 'none';
-          instructionsEl.textContent = 'Cube created! It should remain fixed in world space as you move around.';
-          loadingEl.style.display = 'none';
-          
-          debugLog('Fixed cube placed at position: ' + JSON.stringify({
-            x: finalPosition.x.toFixed(2), 
-            y: finalPosition.y.toFixed(2), 
-            z: finalPosition.z.toFixed(2)
-          }));
-        } catch (error) {
-          console.error('Error creating cube:', error);
-          debugLog('Error creating cube: ' + error.message);
-        }
+        const scene = document.querySelector('a-scene');
+        
+        // Create a fixed cube directly in the scene
+        const fixedCube = document.createElement('a-entity');
+        fixedCube.setAttribute('position', '0 0 -3'); // 3 meters in front of camera
+        
+        // Create a red cube
+        const cube = document.createElement('a-box');
+        cube.setAttribute('color', 'red');
+        cube.setAttribute('scale', '0.5 0.5 0.5');
+        cube.setAttribute('position', '0 1.5 0'); // 1.5 meters above ground
+        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000');
+        fixedCube.appendChild(cube);
+        
+        // Add a text label
+        const text = document.createElement('a-text');
+        text.setAttribute('value', 'FIXED CUBE');
+        text.setAttribute('position', '0 2.1 0');
+        text.setAttribute('align', 'center');
+        text.setAttribute('color', 'white');
+        text.setAttribute('look-at', '[camera]');
+        fixedCube.appendChild(text);
+        
+        // Add to scene
+        scene.appendChild(fixedCube);
+        
+        cubeCreated = true;
+        startButton.style.display = 'none';
+        instructionsEl.textContent = 'Cube created! It should remain fixed in place as you move around.';
+        debugLog('Fixed cube created in front of camera');
+        
+        // Hide loading
+        loadingEl.style.display = 'none';
       });
     });
   </script>
