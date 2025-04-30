@@ -2,9 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Fixed AR Cube - Markerless</title>
+  <title>AR Cubes - Location Based</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
   <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
   <style>
     .info-panel {
@@ -37,76 +37,125 @@
 <body style="margin: 0; overflow: hidden;">
   <button id="placeButton">PLACE CUBE HERE</button>
   <div class="info-panel">
-    Press the button to place a cube 5 feet away from your current position. The cube will stay fixed in real space.
+    Press the button to place a cube 5 feet away from your current position.
   </div>
-  
-  <a-scene embedded arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;" renderer="antialias: true; logarithmicDepthBuffer: true;">
-    <a-entity id="world-root"></a-entity>
-    <a-camera id="camera" look-controls-enabled='true' position="0 1.6 0"></a-camera>
+
+  <!-- AR.js scene with location-based mode -->
+  <a-scene 
+    vr-mode-ui="enabled: false"
+    embedded
+    arjs='sourceType: webcam; debugUIEnabled: false; videoTexture: true;'>
+    
+    <!-- This is our entity container that will hold all placed cubes -->
+    <a-entity id="objects-container"></a-entity>
+    
+    <!-- The camera -->
+    <a-camera id="camera" gps-camera></a-camera>
   </a-scene>
-  
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const placeButton = document.getElementById('placeButton');
-      const camera = document.getElementById('camera');
-      const worldRoot = document.getElementById('world-root');
       const infoPanel = document.querySelector('.info-panel');
+      const camera = document.querySelector('a-camera');
+      const container = document.getElementById('objects-container');
       let cubeCount = 0;
       
-      placeButton.addEventListener('click', function() {
-        cubeCount++;
+      // Function to calculate a point 5 feet away from the user in the direction they're facing
+      function getPositionInFrontOfUser(distance) {
+        // Get the camera's rotation
+        const rotation = camera.getAttribute('rotation');
+        const radians = THREE.MathUtils.degToRad(rotation.y);
         
-        // Get camera's current position and rotation
-        const camPosition = camera.getAttribute('position');
-        const camRotation = camera.getAttribute('rotation');
+        // Calculate the offset in world coordinates
+        return {
+          x: -Math.sin(radians) * distance,
+          y: 0,
+          z: -Math.cos(radians) * distance
+        };
+      }
+      
+      // Function to place a cube
+      function placeCube() {
+        // Get user's current GPS position from the camera
+        if (!navigator.geolocation) {
+          alert('Geolocation is not supported by your browser');
+          return;
+        }
         
-        // Create an invisible anchor at camera position
-        const anchor = document.createElement('a-entity');
-        anchor.setAttribute('position', `${camPosition.x} 0 ${camPosition.z}`);
-        worldRoot.appendChild(anchor);
-        
-        // Calculate position 5 feet in front of user (about 1.5 meters)
-        // We need to convert camera's rotation to radians
-        const rotY = camRotation.y * (Math.PI / 180);
-        const distance = 1.5; // 5 feet in meters
-        
-        const xOffset = -Math.sin(rotY) * distance;
-        const zOffset = -Math.cos(rotY) * distance;
-        
-        // Generate a random color for the cube
-        const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        // Create the cube
-        const cube = document.createElement('a-box');
-        cube.setAttribute('position', `${xOffset} 1.2 ${zOffset}`);
-        cube.setAttribute('color', randomColor);
-        cube.setAttribute('width', '0.5');
-        cube.setAttribute('height', '0.5');
-        cube.setAttribute('depth', '0.5');
-        cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear');
-        anchor.appendChild(cube);
-        
-        // Add a line from ground to cube
-        const line = document.createElement('a-entity');
-        line.setAttribute('line', `start: ${xOffset} 0 ${zOffset}; end: ${xOffset} 1.2 ${zOffset}; color: ${randomColor};`);
-        anchor.appendChild(line);
-        
-        // Add floating text
-        const text = document.createElement('a-text');
-        text.setAttribute('value', `Cube ${cubeCount}`);
-        text.setAttribute('position', `${xOffset} 1.8 ${zOffset}`);
-        text.setAttribute('align', 'center');
-        text.setAttribute('color', 'white');
-        text.setAttribute('look-at', '#camera');
-        text.setAttribute('scale', '0.5 0.5 0.5');
-        anchor.appendChild(text);
-        
-        // Update info panel
-        infoPanel.innerHTML = `${cubeCount} cube(s) placed. Each cube is 5 feet in front of where you were standing when you clicked.`;
-        
-        console.log('Cube placed at: ', xOffset, zOffset);
-      });
+        navigator.geolocation.getCurrentPosition(function(position) {
+          cubeCount++;
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          
+          // Generate a random color
+          const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+          const randomColor = colors[Math.floor(Math.random() * colors.length)];
+          
+          // Calculate position 5 feet (1.5 meters) in front of user
+          const frontPos = getPositionInFrontOfUser(1.5);
+          
+          // Convert front position to GPS coordinates
+          // Approximate conversion: 1 degree latitude = 111km, 1 degree longitude varies with latitude
+          const latFactor = 1 / 111000; // 1 meter in degrees latitude
+          const lonFactor = 1 / (111000 * Math.cos(latitude * (Math.PI / 180))); // 1 meter in degrees longitude
+          
+          // Calculate the new position (5 feet in front of current position)
+          const newLat = latitude + (frontPos.z * latFactor);
+          const newLon = longitude + (frontPos.x * lonFactor);
+          
+          // Create the cube entity
+          const cubeEntity = document.createElement('a-entity');
+          cubeEntity.setAttribute('id', `cube-${cubeCount}`);
+          
+          // Set the GPS position
+          cubeEntity.setAttribute('gps-entity-place', {
+            latitude: newLat,
+            longitude: newLon
+          });
+          
+          // Add the visual cube
+          const cube = document.createElement('a-box');
+          cube.setAttribute('color', randomColor);
+          cube.setAttribute('scale', '0.5 0.5 0.5');
+          cube.setAttribute('position', '0 1.5 0'); // 1.5m above ground
+          cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear');
+          cubeEntity.appendChild(cube);
+          
+          // Add line connecting to ground
+          const line = document.createElement('a-entity');
+          line.setAttribute('line', 'start: 0 0 0; end: 0 1.5 0; color: ' + randomColor);
+          cubeEntity.appendChild(line);
+          
+          // Add text label
+          const text = document.createElement('a-text');
+          text.setAttribute('value', `Cube ${cubeCount}`);
+          text.setAttribute('position', '0 2.1 0');
+          text.setAttribute('align', 'center');
+          text.setAttribute('color', 'white');
+          text.setAttribute('look-at', '[camera]');
+          text.setAttribute('scale', '1 1 1');
+          cubeEntity.appendChild(text);
+          
+          // Add to scene
+          container.appendChild(cubeEntity);
+          
+          // Update info panel
+          infoPanel.innerHTML = `${cubeCount} cube(s) placed. Each cube is fixed at its GPS coordinates.`;
+          
+          console.log(`Cube ${cubeCount} placed at latitude: ${newLat}, longitude: ${newLon}`);
+        }, function(error) {
+          console.error('Error getting location:', error);
+          alert('Unable to get your location. Please enable location services and try again.');
+        }, { 
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      }
+      
+      // Event listener for place button
+      placeButton.addEventListener('click', placeCube);
     });
   </script>
 </body>
