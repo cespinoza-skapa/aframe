@@ -89,21 +89,19 @@
   <button id="placeButton" class="button" style="display: none;">Place Fixed Cube</button>
 
   <!-- AR Scene (initially hidden) -->
-  <div id="arScene" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-      <!-- HIRO Marker -->
-      <a-marker preset="hiro" id="hiroMarker">
-        <!-- Yellow box to indicate marker detection -->
-        <a-box position="0 0.5 0" color="yellow" scale="0.3 0.3 0.3"></a-box>
-      </a-marker>
-      
-      <!-- Camera -->
-      <a-entity camera></a-entity>
-      
-      <!-- This entity will hold our fixed cube -->
-      <a-entity id="fixedCubeContainer"></a-entity>
-    </a-scene>
-  </div>
+  <a-scene id="arScene" embedded arjs="sourceType: webcam; debugUIEnabled: false;" style="display: none;">
+    <!-- HIRO Marker -->
+    <a-marker preset="hiro" id="hiroMarker">
+      <!-- Yellow box to indicate marker detection -->
+      <a-box position="0 0.5 0" color="yellow" scale="0.3 0.3 0.3"></a-box>
+    </a-marker>
+    
+    <!-- Camera -->
+    <a-entity camera></a-entity>
+    
+    <!-- This entity will hold our fixed cube -->
+    <a-entity id="fixedCubeContainer"></a-entity>
+  </a-scene>
 
   <script>
     // Wait for DOM to be fully loaded
