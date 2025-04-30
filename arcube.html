@@ -2,8 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Simple AR Cube Placer</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <title>AR Cube Placement</title>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <style>
     #arButton {
       position: fixed;
@@ -58,20 +59,25 @@
     }
   </style>
 </head>
-<body>
+<body style="margin: 0; overflow: hidden;">
   <div id="startOverlay" class="overlay">
-    <h2>Simple AR Cube Placement</h2>
-    <p>This demo places a rotating red cube 1.5 meters (5 feet) in front of you when you tap the button. The cube will stay fixed in real-world space.</p>
+    <h2>AR Cube Placement</h2>
+    <p>This demo places rotating cubes 5 feet (1.5 meters) in front of you. The cubes will stay fixed in real-world space.</p>
     <button id="startButton">Start AR Experience</button>
   </div>
 
-  <a-scene id="scene" embedded>
-    <a-entity id="rig">
-      <a-entity id="camera" camera look-controls position="0 1.6 0"></a-entity>
-    </a-entity>
+  <!-- AR.js scene with embedded camera -->
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;"
+    renderer="logarithmicDepthBuffer: true;"
+    vr-mode-ui="enabled: false">
     
-    <a-entity light="type: ambient; color: #BBB"></a-entity>
-    <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-0.5 1 1"></a-entity>
+    <!-- The camera with AR.js controls -->
+    <a-camera id="camera"></a-camera>
+    
+    <!-- Container for all cubes -->
+    <a-entity id="cubeContainer"></a-entity>
   </a-scene>
   
   <button id="arButton" style="display: none;">PLACE A CUBE HERE</button>
@@ -81,7 +87,7 @@
       const startButton = document.getElementById('startButton');
       const startOverlay = document.getElementById('startOverlay');
       const arButton = document.getElementById('arButton');
-      const scene = document.getElementById('scene');
+      const cubeContainer = document.getElementById('cubeContainer');
       const camera = document.getElementById('camera');
       
       let cubeCount = 0;
@@ -96,35 +102,49 @@
       arButton.addEventListener('click', function() {
         cubeCount++;
         
-        // Get camera position and rotation
-        const camPosition = camera.getAttribute('position');
-        const camRotation = camera.getAttribute('rotation');
+        // Get the camera position and rotation
+        const cameraPosition = camera.object3D.position;
+        const cameraRotation = camera.object3D.rotation;
         
-        // Convert camera's Y rotation to radians
-        const rotationY = camRotation.y * (Math.PI / 180);
+        // Direction vector (forward direction of camera)
+        const direction = new THREE.Vector3(0, 0, -1);
+        direction.applyQuaternion(camera.object3D.quaternion);
+        direction.normalize();
         
         // Calculate position 5 feet (1.5 meters) in front of camera
         const distance = 1.5;
-        const xPosition = camPosition.x - Math.sin(rotationY) * distance;
-        const zPosition = camPosition.z - Math.cos(rotationY) * distance;
+        const position = new THREE.Vector3();
+        position.copy(cameraPosition);
+        position.addScaledVector(direction, distance);
         
-        // Create a cube
+        // Random color
+        const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Create a cube entity as world-relative
+        const cubeEntity = document.createElement('a-entity');
+        cubeEntity.setAttribute('id', `cube-entity-${cubeCount}`);
+        
+        // Add the cube
         const cube = document.createElement('a-box');
         cube.setAttribute('id', `cube-${cubeCount}`);
-        cube.setAttribute('position', `${xPosition} ${camPosition.y} ${zPosition}`);
-        cube.setAttribute('color', 'red');
+        cube.setAttribute('color', color);
         cube.setAttribute('width', '0.5');
         cube.setAttribute('height', '0.5');
         cube.setAttribute('depth', '0.5');
         cube.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear');
         
-        // Add cube to scene
-        scene.appendChild(cube);
+        // World position for the entity
+        cubeEntity.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+        cubeEntity.appendChild(cube);
+        
+        // Add to scene
+        cubeContainer.appendChild(cubeEntity);
         
         // Update the button text
-        arButton.textContent = `PLACED CUBE ${cubeCount} - TAP FOR MORE`;
+        arButton.textContent = `PLACED ${cubeCount} CUBE(S) - TAP FOR MORE`;
         
-        console.log(`Cube ${cubeCount} placed at position:`, xPosition, camPosition.y, zPosition);
+        console.log(`Cube ${cubeCount} placed at:`, position);
       });
     });
   </script>
