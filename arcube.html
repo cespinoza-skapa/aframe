@@ -14,15 +14,20 @@
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
           
-          // Create the cube at the current location
+          // Calculate position 5 feet (approx 1.5 meters) away
+          // At Earth's surface, 1 degree of latitude is ~111,000 meters
+          // Placing the cube 5 feet (~1.5m) north of current position
+          const distanceInDegrees = 1.5 / 111000; // 5 feet in degrees latitude
+          
+          // Create the cube at 5 feet away from current location
           const cube = document.createElement('a-entity');
           cube.setAttribute('gps-entity-place', {
-            latitude: latitude,
+            latitude: latitude + distanceInDegrees, // Place it slightly north of user
             longitude: longitude
           });
           cube.setAttribute('geometry', 'primitive: box');
           cube.setAttribute('material', 'color: #4CC3D9');
-          cube.setAttribute('scale', '5 5 5');
+          cube.setAttribute('scale', '1 1 1'); // Smaller scale to look appropriate at 5 feet
           
           // Add the cube to the scene
           const scene = document.querySelector('a-scene');
@@ -35,7 +40,7 @@
             longitude: longitude
           });
           
-          alert('Cube placed at: ' +  latitude + ' ' + longitude);
+          alert('Cube placed 5 feet away at: ' + (latitude + distanceInDegrees) + ' ' + longitude);
         },
         function(error) {
           console.error('Error getting location:', error);
