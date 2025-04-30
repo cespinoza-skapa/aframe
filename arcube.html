@@ -51,11 +51,10 @@
       const camera = document.getElementById('camera');
       const worldRoot = document.getElementById('world-root');
       const infoPanel = document.querySelector('.info-panel');
-      let hasPlacedCube = false;
+      let cubeCount = 0;
       
       placeButton.addEventListener('click', function() {
-        if (hasPlacedCube) return;
-        hasPlacedCube = true;
+        cubeCount++;
         
         // Get camera's current position and rotation
         const camPosition = camera.getAttribute('position');
@@ -74,10 +73,14 @@
         const xOffset = -Math.sin(rotY) * distance;
         const zOffset = -Math.cos(rotY) * distance;
         
+        // Generate a random color for the cube
+        const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        
         // Create the cube
         const cube = document.createElement('a-box');
         cube.setAttribute('position', `${xOffset} 1.2 ${zOffset}`);
-        cube.setAttribute('color', 'red');
+        cube.setAttribute('color', randomColor);
         cube.setAttribute('width', '0.5');
         cube.setAttribute('height', '0.5');
         cube.setAttribute('depth', '0.5');
@@ -86,12 +89,12 @@
         
         // Add a line from ground to cube
         const line = document.createElement('a-entity');
-        line.setAttribute('line', `start: ${xOffset} 0 ${zOffset}; end: ${xOffset} 1.2 ${zOffset}; color: blue;`);
+        line.setAttribute('line', `start: ${xOffset} 0 ${zOffset}; end: ${xOffset} 1.2 ${zOffset}; color: ${randomColor};`);
         anchor.appendChild(line);
         
         // Add floating text
         const text = document.createElement('a-text');
-        text.setAttribute('value', '5 feet away');
+        text.setAttribute('value', `Cube ${cubeCount}`);
         text.setAttribute('position', `${xOffset} 1.8 ${zOffset}`);
         text.setAttribute('align', 'center');
         text.setAttribute('color', 'white');
@@ -100,10 +103,7 @@
         anchor.appendChild(text);
         
         // Update info panel
-        infoPanel.innerHTML = 'Cube placed 5 feet in front of you.<br>The cube should remain fixed as you move around.';
-        
-        // Hide button
-        placeButton.style.display = 'none';
+        infoPanel.innerHTML = `${cubeCount} cube(s) placed. Each cube is 5 feet in front of where you were standing when you clicked.`;
         
         console.log('Cube placed at: ', xOffset, zOffset);
       });
