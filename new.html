@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Permissions-Policy" content="xr-spatial-tracking=*">
     <title>WebAR Box Interaction</title>
+    <!-- A-Frame and AR.js Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.4.0/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
         #popupMessage {
             display: none;
@@ -34,103 +34,63 @@
             font-weight: bold;
             cursor: pointer;
         }
+
+        .a-enter-ar {
+            font-size: 1.5em !important;
+            padding: 0.5em 1em !important;
+        }
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    <div id="overlay">
-        <div id="popupMessage">
-            <p>You've interacted with the 3D box!</p>
-            <button id="closeButton">Close</button>
-        </div>
+    <div id="popupMessage">
+        <p>You've interacted with the 3D box!</p>
+        <button id="closeButton">Close</button>
     </div>
 
+    <!-- A-Frame Scene with AR.js -->
     <a-scene 
-        vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
         embedded
-        webxr="requiredFeatures: hit-test,local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;">
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        vr-mode-ui="enabled: false">
         
-        <!-- Camera with cursor for interaction -->
-        <a-entity camera look-controls position="0 1.6 0">
-            <a-cursor raycaster="objects: .clickable" fuse="false"></a-cursor>
-        </a-entity>
+        <!-- Use a custom marker to place the box -->
+        <a-marker-camera type="pattern" url="https://raw.githack.com/AR-js-org/AR.js/master/data/hiro.patt">
+            <!-- The box will be positioned relative to this marker -->
+        </a-marker-camera>
         
-        <!-- Custom box component -->
-        <a-entity id="box-container" position="0 0 0">
-            <!-- The 3D box will be placed here via JavaScript -->
-        </a-entity>
+        <!-- Create a 3D box positioned 10 feet (about 3 meters) away -->
+        <a-box 
+            id="ar-box"
+            position="0 0 -3"
+            width="0.5" 
+            height="0.5" 
+            depth="0.5" 
+            color="#4285F4"
+            class="clickable"
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;">
+        </a-box>
         
+        <!-- Camera -->
+        <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        // Create a component to handle AR initialization and permissions
-        AFRAME.registerComponent('ar-permission-handler', {
-            init: function() {
-                // Check if WebXR is supported
-                if (navigator.xr) {
-                    console.log('WebXR is supported');
-                    
-                    // Attempt to see if immersive-ar is supported
-                    navigator.xr.isSessionSupported('immersive-ar')
-                        .then((supported) => {
-                            if (supported) {
-                                console.log('AR is supported on this device');
-                            } else {
-                                console.warn('AR is not supported on this device');
-                                alert('AR is not supported on your device.');
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Error checking AR support:', err);
-                        });
-                } else {
-                    console.warn('WebXR is not supported');
-                    alert('WebXR is not supported on your browser. Please try a compatible browser like Chrome or Safari.');
-                }
-            }
-        });
-
         // Wait for the scene to load
         document.addEventListener('DOMContentLoaded', function() {
-            const scene = document.querySelector('a-scene');
+            // Get a reference to the box
+            const box = document.getElementById('ar-box');
             
-            // Add the permission handler component to the scene
-            scene.setAttribute('ar-permission-handler', '');
-            
-            // Create the event after scene loads
-            scene.addEventListener('loaded', function() {
-                // Create the 3D box positioned 10 feet (about 3 meters) away
-                const boxContainer = document.getElementById('box-container');
+            // Wait for A-Frame to initialize
+            setTimeout(function() {
+                // Add click event listener to the box
+                box.addEventListener('click', showPopup);
+                box.addEventListener('touchend', showPopup);
                 
-                // Create a box entity
-                const box = document.createElement('a-box');
-                box.setAttribute('position', '0 1.6 -3'); // 3 meters away (approximately 10 feet)
-                box.setAttribute('width', '0.5');
-                box.setAttribute('height', '0.5');
-                box.setAttribute('depth', '0.5');
-                box.setAttribute('color', '#4285F4');
-                box.setAttribute('shadow', 'cast: true');
-                box.setAttribute('class', 'clickable');
-                
-                // Add box to the container
-                boxContainer.appendChild(box);
-                
-                // Add click event to the box
-                box.addEventListener('click', function() {
-                    showPopup();
-                });
-                
-                // Also listen for touch events for mobile
-                box.addEventListener('touchend', function() {
-                    showPopup();
-                });
-                
-                console.log('Box placed 10 feet away from user');
-            });
+                console.log('Interaction handlers added to 3D box');
+            }, 2000);
         });
         
-        // Popup message functions
+        // Function to show the popup
         function showPopup() {
             const popup = document.getElementById('popupMessage');
             popup.style.display = 'block';
